@@ -1,11 +1,10 @@
-name: Daily Kaggle Trending Downloader
+name: Daily Kaggle Trending
 
 on:
   schedule:
     - cron: '0 0 * * *'
   workflow_dispatch:
 
-# Fixes the Node.js 20 Deprecation warning
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
@@ -13,26 +12,29 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v4 # These will now run on Node 24
+      - name: Checkout
+        uses: actions/checkout@v4
 
-      - name: Set up Python
+      - name: Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.10'
 
-      - name: Install dependencies
+      - name: Install Tools
         run: pip install selenium undetected-chromedriver
 
-      - name: Run Scraper Script
+      - name: Run Scraper
         env:
           KAGGLE_SESSION_ID: ${{ secrets.KAGGLE_SESSION_ID }}
           KAGGLE_XSRF_TOKEN: ${{ secrets.KAGGLE_XSRF_TOKEN }}
         run: python scraper.py
 
-      - name: Upload Downloaded Dataset
+      - name: Upload Result
+        if: always() # Runs even if the script failed, so you can see error_debug.png
         uses: actions/upload-artifact@v4
         with:
-          name: kaggle-trending-data
-          # Use the relative path from the repo root
-          path: downloads/
+          name: kaggle-output
+          # This captures the downloads folder AND the debug screenshot if it exists
+          path: |
+            downloads/
+            *.png
