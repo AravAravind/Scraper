@@ -1,55 +1,44 @@
 import os
 import time
-import json
-import subprocess
-import undetected_chromedriver as uc
-from selenium.webdriver.common.by import By
 
-def get_chrome_version():
-    try:
-        # Check the version of chrome installed on the GitHub Runner
-        version = subprocess.check_output(['google-chrome', '--version']).decode('utf-8')
-        # Extract just the main number (e.g., 147)
-        return int(version.split()[2].split('.')[0])
-    except:
-        return None
+# ... (rest of your setup code) ...
 
 def run_with_manual_tokens():
-    chrome_version = get_chrome_version()
-    print(f"Detected Chrome version: {chrome_version}")
+    # 1. Absolute path ensures GitHub finds it
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    download_path = os.path.join(current_dir, "downloads")
+    
+    if not os.path.exists(download_path):
+        os.makedirs(download_path)
 
     options = uc.ChromeOptions()
     options.add_argument("--headless")
-    options.add_argument("--no-sandbox")
-    options.add_argument("--disable-dev-shm-usage")
+    
+    # 2. Tell Chrome EXACTLY where to put the file
+    prefs = {
+        "download.default_directory": download_path,
+        "download.prompt_for_download": False,
+        "directory_upgrade": True
+    }
+    options.add_experimental_option("prefs", prefs)
+    
+    # ... (Login and navigation code) ...
 
-    # Force undetected_chromedriver to use the matching version
-    driver = uc.Chrome(options=options, version_main=chrome_version)
-
+    # 3. The Download Click
     try:
-        driver.get("https://www.kaggle.com")
-        time.sleep(2)
-
-        # ... rest of your cookie injection and download logic ...
-        manual_cookies = [
-            {"name": "ka_sessionid", "value": os.getenv("KAGGLE_SESSION_ID"), "domain": ".kaggle.com"},
-            {"name": "XSRF-TOKEN", "value": os.getenv("KAGGLE_XSRF_TOKEN"), "domain": ".kaggle.com"}
-        ]
-
-        for cookie in manual_cookies:
-            driver.add_cookie(cookie)
-
-        driver.get("https://www.kaggle.com/datasets?topic=trendingDataset")
-        time.sleep(5)
+        download_btn = wait.until(EC.element_to_be_clickable((By.XPATH, "//button[descendant::span[contains(text(), 'Download')]]")))
+        download_btn.click()
         
-        # Verify
-        if "Log In" not in driver.page_source:
-            print("Successfully logged in!")
-        else:
-            print("Login failed - check your token values.")
-
-    finally:
-        driver.quit()
-
-if __name__ == "__main__":
-    run_with_manual_tokens()
+        # 4. WAIT for the file to appear
+        print("Waiting for download to complete...")
+        timeout = 60  # seconds
+        start_time = time.time()
+        while time.time() - start_time < timeout:
+            files = os.listdir(download_path)
+            # Check if there is a file and it's not a .crdownload (temporary file)
+            if files and not any(f.endswith('.crdownload') for f in files):
+                print(f"File found: {files[0]}")
+                break
+            time.sleep(2)
+    except Exception as e:
+        print(f"Download failed: {e}")
