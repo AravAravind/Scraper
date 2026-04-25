@@ -20,10 +20,11 @@ jobs:
         with:
           python-version: '3.10'
 
-      - name: Install Selenium and Undetected Chromedriver
-        run: |
-          pip install selenium undetected-chromedriver
 
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install selenium undetected-chromedriver
       - name: Run Scraper Script
         env:
           # These must match the names you give your GitHub Secrets
